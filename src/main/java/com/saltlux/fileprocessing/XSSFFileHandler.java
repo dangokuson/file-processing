@@ -6,8 +6,9 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.poi.ss.usermodel.Workbook;
-import org.apache.poi.ss.usermodel.WorkbookFactory;
+import org.apache.poi.openxml4j.opc.OPCPackage;
+import org.apache.poi.openxml4j.opc.PackageAccess;
+import org.apache.poi.xssf.usermodel.XSSFWorkbook;
 
 import com.google.gson.JsonObject;
 
@@ -25,7 +26,8 @@ public class XSSFFileHandler extends FileHandler {
 	@Override
 	public List<String> getSheetList() {
 		List<String> sheetNames = new ArrayList<>();
-		Workbook wb = null;
+		XSSFWorkbook wb = null;
+		OPCPackage pkg = null;
 		
 		try {
 			/* http://poi.apache.org/spreadsheet/quick-guide.html#FileInputStream
@@ -36,9 +38,11 @@ public class XSSFFileHandler extends FileHandler {
 			 */
 			File file = new File(filePath);
 			if (!file.exists()) {
-				throw new FileNotFoundException("Could not find file [" + file.getPath() + "]");
+				throw new FileNotFoundException("Not found or not a file: " + file.getPath());
 			}
-			wb = WorkbookFactory.create(file);
+			
+			pkg = OPCPackage.open(file.getAbsolutePath(), PackageAccess.READ);
+			wb = new XSSFWorkbook(file);
 			int numberOfSheets = wb.getNumberOfSheets();
 			for (int i = 0; i < numberOfSheets; i++) {
 				sheetNames.add(wb.getSheetName(i));
