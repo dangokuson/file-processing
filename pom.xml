@@ -8,12 +8,13 @@
 	<name>file-processing</name>
 
 	<url>http://maven.apache.org</url>
+	
 	<dependencies>
 		<!-- https://mvnrepository.com/artifact/org.apache.poi/poi -->
 		<dependency>
 			<groupId>org.apache.poi</groupId>
 			<artifactId>poi</artifactId>
-			<version>3.15</version>
+			<version>3.13</version>
 		</dependency>
 
 		<!-- http://opencsv.sourceforge.net/ -->
@@ -59,6 +60,7 @@
 			<scope>test</scope>
 		</dependency>
 	</dependencies>
+
 	<build>
 		<finalName>${project.artifactId}-${project.version}</finalName>
 		<plugins>

@@ -12,6 +12,7 @@ import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.junit.Test;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.monitorjbl.xlsx.StreamingReader;
 
@@ -130,6 +131,31 @@ public class XLSXStreamerTest {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+	}
+	
+	@Test
+	public void testPerformance10() throws FileNotFoundException, IOException {
+		String filePath = getClass().getClassLoader().getResource("test03.XLSX").getPath();
+		long start = System.currentTimeMillis();
+		JsonArray datasets = new JsonArray();
+		try {
+			File file = new File(filePath);
+			Workbook wb = StreamingReader.builder().sstCacheSize(100).bufferSize(4096).open(file);
+			Sheet sheet = wb.getSheetAt(0);
+			long count = 0;
+			for (Row row : sheet) {
+				JsonObject object = new JsonObject();
+				for (Cell c : row) {
+					object.addProperty(String.valueOf(c.getColumnIndex()), c.getStringCellValue());
+				}
+				datasets.add(object);
+				count++;
+			}
+			System.out.println("Read " + count + " rows in " + (System.currentTimeMillis() - start) + "ms");
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+		System.out.println(datasets.toString());
 	}
 	
 	private void excelStreamingReader(String filePath) throws FileNotFoundException, IOException {

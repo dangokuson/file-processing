@@ -8,10 +8,13 @@ import java.util.ArrayList;
 import java.util.List;
 
 import org.apache.commons.io.FilenameUtils;
+import org.apache.poi.ss.usermodel.Cell;
+import org.apache.poi.ss.usermodel.Row;
 import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.xmlbeans.impl.piccolo.io.FileFormatException;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.monitorjbl.xlsx.StreamingReader;
 
@@ -150,19 +153,48 @@ public class XSSFFileHandler extends FileHandler {
 		return !isXSSFFile(filePath);
 	}
 	
-	/**
-	 * Parses and shows the content of one sheet
-	 * 
-	 * @param sheet
-	 * @return
-	 */
 	private JsonObject parseSheet(Sheet sheet) {
-		if (sheet == null) {
-			throw new IllegalArgumentException("Sheet name is invalid.");
+		JsonObject response = new JsonObject();
+
+		try {
+			if (sheet == null) {
+				response.addProperty("status", "ERROR");
+				JsonObject error = new JsonObject();
+				error.addProperty("code", 99999);
+				error.addProperty("message", "There is not sheet is match with given name.");
+				response.add("error", error);
+			}
+
+			JsonObject dataSheet = new JsonObject();
+			JsonArray dataOfRows = new JsonArray();
+			for (Row row : sheet) {
+				dataOfRows.add(parseRow(row));
+			}
+			// TODO: Adding more information here!
+			dataSheet.add("dataset", dataOfRows);
+		} catch (Exception ex) {
+			response.addProperty("status", "ERROR");
+			response.addProperty("data", "ERROR");
+			JsonObject error = new JsonObject();
+			error.addProperty("code", 99998);
+			error.addProperty("message", ex.getLocalizedMessage());
+			response.add("error", error);
 		}
 		
 		// Return JSON Object
 		// {status: SUCCESS/ERROR, data: [], error: { code: 000, message: "" }}
-		return null;
+		return response;
+	}
+	
+	private JsonObject parseRow(Row row) {
+		JsonObject dataOfRow = new JsonObject();
+		if (row == null) {
+			return dataOfRow;
+		}
+
+		for (Cell cell : row) {
+			dataOfRow.addProperty(String.valueOf(cell.getColumnIndex()), cell.getStringCellValue());
+		}
+		return dataOfRow;
 	}
 }
