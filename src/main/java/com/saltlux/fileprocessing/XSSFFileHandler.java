@@ -1,55 +1,70 @@
 package com.saltlux.fileprocessing;
 
-import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 
-import org.apache.poi.openxml4j.opc.OPCPackage;
-import org.apache.poi.openxml4j.opc.PackageAccess;
-import org.apache.poi.xssf.usermodel.XSSFWorkbook;
+import org.apache.commons.io.FilenameUtils;
+import org.apache.poi.ss.usermodel.Sheet;
+import org.apache.poi.ss.usermodel.Workbook;
+import org.apache.xmlbeans.impl.piccolo.io.FileFormatException;
 
 import com.google.gson.JsonObject;
+import com.monitorjbl.xlsx.StreamingReader;
 
 public class XSSFFileHandler extends FileHandler {
 	
-	public XSSFFileHandler(String fileName, String filePath) {
-		super(fileName, filePath);
+	public static final String XSSF_EXTENSION = "XLSX";
+	
+	public XSSFFileHandler(String filePath) throws FileNotFoundException, FileFormatException {
+		super(filePath);
+		
+		if (isNotXSSFFile(filePath)) {
+			throw new FileFormatException("Excel cannot open " + filePath + 
+					" because the file extension is not valid. Only supports XLSX.");
+		}
 	}
 
-	public XSSFFileHandler(String fileName, String filePath, 
-			boolean firstRowHeader, int skipFirstRows, int skipLastRows) {
-		super(fileName, filePath, firstRowHeader, skipFirstRows, skipLastRows);
+	public XSSFFileHandler(String filePath, boolean firstRowHeader, int skipFirstRows, int skipLastRows) 
+			throws FileNotFoundException, FileFormatException {
+		super(filePath, firstRowHeader, skipFirstRows, skipLastRows);
+		
+		if (isNotXSSFFile(filePath)) {
+			throw new FileFormatException("Excel cannot open " + filePath + 
+					" because the file extension is not valid. Only supports XLSX.");
+		}
 	}
 
 	@Override
-	public List<String> getSheetList() {
-		List<String> sheetNames = new ArrayList<>();
-		XSSFWorkbook wb = null;
-		OPCPackage pkg = null;
+	public List<String> getSheetNames() {
+		final List<String> sheetNames = new ArrayList<>();
+		InputStream is = null;
+		Workbook wb = null;
 		
 		try {
-			/* http://poi.apache.org/spreadsheet/quick-guide.html#FileInputStream
-			 * 
-			 * Using a File object allows for lower memory consumption, while an
-			 * InputStream requires more memory as it has to buffer the whole
-			 * file
-			 */
-			File file = new File(filePath);
-			if (!file.exists()) {
-				throw new FileNotFoundException("Not found or not a file: " + file.getPath());
-			}
-			
-			pkg = OPCPackage.open(file.getAbsolutePath(), PackageAccess.READ);
-			wb = new XSSFWorkbook(file);
+			is = new FileInputStream(getOriginalFile());
+			wb = StreamingReader.builder()
+					.rowCacheSize(100)    // number of rows to keep in memory (defaults to 10)
+			        .bufferSize(4096)     // buffer size to use when reading InputStream to file (defaults to 1024)
+			        .open(is);            // InputStream or File for XLSX file (required)
 			int numberOfSheets = wb.getNumberOfSheets();
 			for (int i = 0; i < numberOfSheets; i++) {
 				sheetNames.add(wb.getSheetName(i));
-			}
+			}		
 		} catch (Exception ex) {
 			ex.printStackTrace();
 		} finally {
+			if (is != null) {
+				try {
+					is.close();
+				} catch (IOException ex) {
+					ex.printStackTrace();
+				}
+			}
+			
 			if (wb != null) {
 				try {
 					wb.close();
@@ -63,20 +78,44 @@ public class XSSFFileHandler extends FileHandler {
 
 	@Override
 	List<String> getFieldList() {
-		// TODO Auto-generated method stub
 		return null;
 	}
 
 	@Override
-	JsonObject getDataPage(String sheetName, int page, int pageSize) {
-		// TODO Auto-generated method stub
-		return null;
-	}
+	public JsonObject getAllData(String sheetName) {
+		JsonObject sheetContent = new JsonObject();
 
-	@Override
-	JsonObject getAllData(String sheetName, List<String> colList) {
-		// TODO Auto-generated method stub
-		return null;
+		InputStream is = null;
+		Workbook wb = null;
+		
+		try {
+			is = new FileInputStream(getOriginalFile());
+			wb = StreamingReader.builder()
+					.rowCacheSize(100)    // number of rows to keep in memory (defaults to 10)
+			        .bufferSize(4096)     // buffer size to use when reading InputStream to file (defaults to 1024)
+			        .open(is);            // InputStream or File for XLSX file (required)
+			Sheet sheet = wb.getSheet(sheetName);
+			sheetContent = parseSheet(sheet);
+		} catch (Exception ex) {
+			ex.printStackTrace();
+		} finally {
+			if (is != null) {
+				try {
+					is.close();
+				} catch (IOException ex) {
+					ex.printStackTrace();
+				}
+			}
+			
+			if (wb != null) {
+				try {
+					wb.close();
+				} catch (IOException ex) {
+					ex.printStackTrace();
+				}
+			}
+		}
+		return sheetContent;
 	}
 
 	@Override
@@ -103,4 +142,27 @@ public class XSSFFileHandler extends FileHandler {
 		return null;
 	}
 
+	private boolean isXSSFFile(String filePath) {
+		return XSSF_EXTENSION.equalsIgnoreCase(FilenameUtils.getExtension(filePath));
+	}
+	
+	private boolean isNotXSSFFile(String filePath) {
+		return !isXSSFFile(filePath);
+	}
+	
+	/**
+	 * Parses and shows the content of one sheet
+	 * 
+	 * @param sheet
+	 * @return
+	 */
+	private JsonObject parseSheet(Sheet sheet) {
+		if (sheet == null) {
+			throw new IllegalArgumentException("Sheet name is invalid.");
+		}
+		
+		// Return JSON Object
+		// {status: SUCCESS/ERROR, data: [], error: { code: 000, message: "" }}
+		return null;
+	}
 }

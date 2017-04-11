@@ -1,5 +1,7 @@
 package com.saltlux.fileprocessing;
 
+import java.io.File;
+import java.io.FileNotFoundException;
 import java.util.List;
 
 import com.google.gson.JsonObject;
@@ -11,21 +13,34 @@ public abstract class FileHandler {
 	protected boolean firstRowHeader = true;
 	protected int skipFirstRows = 0;
 	protected int skipLastRows = 0;
-	protected String fileName = null;
 	protected String filePath = null;
 	protected boolean addTimestampColumn = true;
 	
-	public FileHandler(String fileName, String filePath) {
-		this.fileName = fileName;
+	private File originalFile;
+	
+	public FileHandler(String filePath) throws FileNotFoundException {
 		this.filePath = filePath;
+		this.originalFile = new File(filePath);
+		
+		// Throw exception if could not find file
+		if (!originalFile.exists()) {
+			throw new FileNotFoundException("Not found or not a file: " + originalFile.getPath());
+		}
 	}
 	
-	public FileHandler(String fileName, String filePath, 
-			boolean firstRowHeader, int skipFirstRows, int skipLastRows) {
-		this(fileName, filePath);
+	public FileHandler(String filePath, boolean firstRowHeader, int skipFirstRows, int skipLastRows) throws FileNotFoundException {
+		this(filePath);
 		this.firstRowHeader = firstRowHeader;
 		this.skipFirstRows = skipFirstRows;
 		this.skipLastRows = skipLastRows;
+	}
+	
+	public File getOriginalFile() {
+		return originalFile;
+	}
+	
+	public String getFileName() {
+		return originalFile.getName();
 	}
 	
 	/**
@@ -33,7 +48,7 @@ public abstract class FileHandler {
 	 * 
 	 * @return
 	 */
-	abstract List<String> getSheetList();
+	abstract List<String> getSheetNames();
 	
 	/**
 	 * Get list of field name in table
@@ -42,30 +57,14 @@ public abstract class FileHandler {
 	 */
 	abstract List<String> getFieldList();
 	
-	
-	/**
-	 * Get one data page from data source
-	 * 
-	 * @param sheetName:
-	 *            name of the sheet to get data (excel case)
-	 * @param page:
-	 *            zero based page number
-	 * @param pageSize:
-	 *            number of row in 1 page
-	 * @return a JsonObject contains: total row, column names, data rows
-	 */
-	abstract JsonObject getDataPage(String sheetName, int page, int pageSize);		
-	
 	/**
 	 * Get all data from source
 	 * 
 	 * @param sheetName:
-	 *            name of the sheet to get data (excel case)
-	 * @param colList:
-	 *            get only columns in this list or all if null
+	 *            Name of the sheet to get data (excel case)
 	 * @return
 	 */
-	abstract JsonObject getAllData(String sheetName, List<String> colList);
+	abstract JsonObject getAllData(String sheetName);
 	
 	/**
 	 * Save final selected data (csv file or user selected excel sheet)
