@@ -11,7 +11,10 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-public class XSSFFileHandlerTest {
+import com.google.gson.JsonObject;
+import com.saltlux.fileprocessing.excel.XSSFHandler;
+
+public class XSSFHandlerTest {
 
 	@Before
 	public void setUp() throws Exception {
@@ -25,7 +28,7 @@ public class XSSFFileHandlerTest {
 	public void test01() throws FileNotFoundException, FileFormatException {
 		long start = System.currentTimeMillis();
 		String filePath = getClass().getClassLoader().getResource("Sample-SuperstoreSubset.xlsx").getPath();
-		XSSFFileHandler fileHandler = new XSSFFileHandler(filePath);
+		XSSFHandler fileHandler = new XSSFHandler(filePath);
 		List<String> sheetNames = fileHandler.getSheetNames();
 		List<String> sheetNamesExpected = Arrays.asList("Orders", "Returns", "Users");
 		System.out.println("Read in " + (System.currentTimeMillis() - start) + "ms");
@@ -38,7 +41,7 @@ public class XSSFFileHandlerTest {
 	public void test02() throws FileNotFoundException, FileFormatException {
 		long start = System.currentTimeMillis();
 		String filePath = getClass().getClassLoader().getResource("sample.xlsx").getPath();
-		XSSFFileHandler fileHandler = new XSSFFileHandler(filePath);
+		XSSFHandler fileHandler = new XSSFHandler(filePath);
 		List<String> sheetNames = fileHandler.getSheetNames();
 		List<String> sheetNamesExpected = Arrays.asList("Smile You Can Read Me !");
 		System.out.println("Read in " + (System.currentTimeMillis() - start) + "ms");
@@ -51,13 +54,39 @@ public class XSSFFileHandlerTest {
 	public void test03() throws FileNotFoundException, FileFormatException {
 		long start = System.currentTimeMillis();
 		String filePath = getClass().getClassLoader().getResource("sample.xlsx").getPath();
-		XSSFFileHandler fileHandler = new XSSFFileHandler(filePath);
+		XSSFHandler fileHandler = new XSSFHandler(filePath);
 		List<String> sheetNames = fileHandler.getSheetNames();
 		List<String> sheetNamesExpected = Arrays.asList("Smile You Can Read Me !");
 		System.out.println("Read in " + (System.currentTimeMillis() - start) + "ms");
 
 		assertFalse(sheetNames.isEmpty());
 		assertTrue(sheetNames.equals(sheetNamesExpected));
+	}
+	
+	@Test
+	public void test04() throws FileNotFoundException, FileFormatException {
+		long start = System.currentTimeMillis();
+		String filePath = getClass().getClassLoader().getResource("sample.xlsx").getPath();
+		XSSFHandler fileHandler = new XSSFHandler(filePath);
+		JsonObject content = fileHandler.getFirstSheetData();
+		System.out.println("Read in " + (System.currentTimeMillis() - start) + "ms");
+
+		assertFalse(content.isJsonNull());
+		
+		System.out.println(content.toString());
+	}
+	
+	@Test
+	public void test05() throws FileNotFoundException, FileFormatException {
+		long start = System.currentTimeMillis();
+		String filePath = getClass().getClassLoader().getResource("test04.XLSX").getPath();
+		XSSFHandler fileHandler = new XSSFHandler(filePath);
+		JsonObject content = fileHandler.getFirstSheetData();
+		System.out.println("Read in " + (System.currentTimeMillis() - start) + "ms");
+
+		assertFalse(content.isJsonNull());
+		
+		System.out.println(content.toString());
 	}
 
 }

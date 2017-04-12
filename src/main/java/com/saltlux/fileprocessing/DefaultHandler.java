@@ -4,9 +4,11 @@ import java.io.File;
 import java.io.FileNotFoundException;
 import java.util.List;
 
+import org.apache.commons.lang3.StringUtils;
+
 import com.google.gson.JsonObject;
 
-public abstract class FileHandler {
+public abstract class DefaultHandler {
 	protected String DATE_FORMAT = "yyyyMMdd HH:mm:ss";
 	
 	protected int rowsCount = 0;
@@ -18,7 +20,7 @@ public abstract class FileHandler {
 	
 	private File originalFile;
 	
-	public FileHandler(String filePath) throws FileNotFoundException {
+	public DefaultHandler(String filePath) throws FileNotFoundException {
 		this.filePath = filePath;
 		this.originalFile = new File(filePath);
 		
@@ -28,7 +30,7 @@ public abstract class FileHandler {
 		}
 	}
 	
-	public FileHandler(String filePath, boolean firstRowHeader, int skipFirstRows, int skipLastRows) throws FileNotFoundException {
+	public DefaultHandler(String filePath, boolean firstRowHeader, int skipFirstRows, int skipLastRows) throws FileNotFoundException {
 		this(filePath);
 		this.firstRowHeader = firstRowHeader;
 		this.skipFirstRows = skipFirstRows;
@@ -43,19 +45,16 @@ public abstract class FileHandler {
 		return originalFile.getName();
 	}
 	
+	protected boolean isNotEmptySheetName(String sheetName) {
+		return StringUtils.isNotEmpty(sheetName);
+	}
+	
 	/**
 	 * Get list contains all sheets in excel file or name for the delimiter file
 	 * 
 	 * @return
 	 */
-	abstract List<String> getSheetNames();
-	
-	/**
-	 * Get list of field name in table
-	 * 
-	 * @return
-	 */
-	abstract List<String> getFieldList();
+	public abstract List<String> getSheetNames();
 	
 	/**
 	 * Get all data from source
@@ -64,26 +63,11 @@ public abstract class FileHandler {
 	 *            Name of the sheet to get data (excel case)
 	 * @return
 	 */
-	abstract JsonObject getAllData(String sheetName);
+	public abstract JsonObject getSheetData(String sheetName);
 	
-	/**
-	 * Save final selected data (csv file or user selected excel sheet)
-	 * 
-	 * @return true if success
-	 */
-	abstract boolean saveImportFile(String desFile, String selectedSheet);
+	public abstract JsonObject getSheetData(String sheetName, int maxRows);
 	
-	/**
-	 * Update data row
-	 * 
-	 * @param rowData:
-	 *            contain data to update {'rowNum':'rowData'}
-	 * @isSwitch: switch columns and rows
-	 * @return
-	 */
-	abstract boolean updateDataFile(JsonObject rowData, boolean isSwitch);
+	public abstract JsonObject getFirstSheetData();
 	
-	abstract JsonObject getAllData(String sheetName, List<String> colList, String columnOption);
-	
-	abstract JsonObject getFileData(String sheetName, int offset, int limit, List<String> colList, String columnOption);
+	public abstract JsonObject getFirstSheetData(int maxRows);
 }

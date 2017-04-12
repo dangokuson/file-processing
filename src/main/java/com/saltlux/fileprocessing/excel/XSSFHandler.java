@@ -1,10 +1,11 @@
-package com.saltlux.fileprocessing;
+package com.saltlux.fileprocessing.excel;
 
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import org.apache.commons.io.FilenameUtils;
@@ -14,15 +15,28 @@ import org.apache.poi.ss.usermodel.Sheet;
 import org.apache.poi.ss.usermodel.Workbook;
 import org.apache.xmlbeans.impl.piccolo.io.FileFormatException;
 
+import com.google.gson.Gson;
 import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.monitorjbl.xlsx.StreamingReader;
+import com.saltlux.fileprocessing.DefaultHandler;
+import com.saltlux.fileprocessing.JSONResponse;
 
-public class XSSFFileHandler extends FileHandler {
+public class XSSFHandler extends DefaultHandler {
 	
 	public static final String XSSF_EXTENSION = "XLSX";
 	
-	public XSSFFileHandler(String filePath) throws FileNotFoundException, FileFormatException {
+	/**
+	 * The list of columns on a sheet (maximum)
+	 */
+	private List<String> columnIndexes = new ArrayList<>();
+	
+	/**
+	 * Max column
+	 */
+	private int maxCellNum = 0;
+	
+	public XSSFHandler(String filePath) throws FileNotFoundException, FileFormatException {
 		super(filePath);
 		
 		if (isNotXSSFFile(filePath)) {
@@ -31,7 +45,7 @@ public class XSSFFileHandler extends FileHandler {
 		}
 	}
 
-	public XSSFFileHandler(String filePath, boolean firstRowHeader, int skipFirstRows, int skipLastRows) 
+	public XSSFHandler(String filePath, boolean firstRowHeader, int skipFirstRows, int skipLastRows) 
 			throws FileNotFoundException, FileFormatException {
 		super(filePath, firstRowHeader, skipFirstRows, skipLastRows);
 		
@@ -78,14 +92,24 @@ public class XSSFFileHandler extends FileHandler {
 		}
 		return sheetNames;
 	}
-
+	
 	@Override
-	List<String> getFieldList() {
-		return null;
+	public JsonObject getFirstSheetData() {
+		return getSheetData(null, -1);
 	}
-
+	
 	@Override
-	public JsonObject getAllData(String sheetName) {
+	public JsonObject getFirstSheetData(int maxRows) {
+		return getSheetData(null, maxRows);
+	}
+	
+	@Override
+	public JsonObject getSheetData(String sheetName) {
+		return getSheetData(sheetName, -1);
+	}
+	
+	@Override
+	public JsonObject getSheetData(String sheetName, int maxRows) {
 		JsonObject sheetContent = new JsonObject();
 
 		InputStream is = null;
@@ -97,8 +121,9 @@ public class XSSFFileHandler extends FileHandler {
 					.rowCacheSize(100)    // number of rows to keep in memory (defaults to 10)
 			        .bufferSize(4096)     // buffer size to use when reading InputStream to file (defaults to 1024)
 			        .open(is);            // InputStream or File for XLSX file (required)
-			Sheet sheet = wb.getSheet(sheetName);
-			sheetContent = parseSheet(sheet);
+			Sheet sheet = isNotEmptySheetName(sheetName) ? wb.getSheet(sheetName) :
+				wb.getSheetAt(0);
+			sheetContent = parseSheet(sheet, maxRows);
 		} catch (Exception ex) {
 			ex.printStackTrace();
 		} finally {
@@ -120,31 +145,7 @@ public class XSSFFileHandler extends FileHandler {
 		}
 		return sheetContent;
 	}
-
-	@Override
-	boolean saveImportFile(String desFile, String selectedSheet) {
-		// TODO Auto-generated method stub
-		return false;
-	}
-
-	@Override
-	boolean updateDataFile(JsonObject rowData, boolean isSwitch) {
-		// TODO Auto-generated method stub
-		return false;
-	}
-
-	@Override
-	JsonObject getAllData(String sheetName, List<String> colList, String columnOption) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
-	@Override
-	JsonObject getFileData(String sheetName, int offset, int limit, List<String> colList, String columnOption) {
-		// TODO Auto-generated method stub
-		return null;
-	}
-
+	
 	private boolean isXSSFFile(String filePath) {
 		return XSSF_EXTENSION.equalsIgnoreCase(FilenameUtils.getExtension(filePath));
 	}
@@ -153,37 +154,43 @@ public class XSSFFileHandler extends FileHandler {
 		return !isXSSFFile(filePath);
 	}
 	
-	private JsonObject parseSheet(Sheet sheet) {
-		JsonObject response = new JsonObject();
+	private JsonObject parseSheet(Sheet sheet, int maxRows) {
+		if (sheet == null) {
+			return JSONResponse.createErrorResp("There is not sheet is match with given name.");
+		}
+		
+		// Default is load all rows in the sheet
+		if (maxRows < -1) {
+			maxRows = -1;
+		}
 
 		try {
-			if (sheet == null) {
-				response.addProperty("status", "ERROR");
-				JsonObject error = new JsonObject();
-				error.addProperty("code", 99999);
-				error.addProperty("message", "There is not sheet is match with given name.");
-				response.add("error", error);
-			}
-
-			JsonObject dataSheet = new JsonObject();
+			JsonObject sheetData = new JsonObject();
 			JsonArray dataOfRows = new JsonArray();
 			for (Row row : sheet) {
+				// Handler for preview rows
+				if (maxRows > 0 && row.getRowNum() <= maxRows) {
+					break;
+				}
+
+				// Parse row data
 				dataOfRows.add(parseRow(row));
 			}
 			// TODO: Adding more information here!
-			dataSheet.add("dataset", dataOfRows);
+			sheetData.add(JSONResponse.DATASET_PROPERTY, dataOfRows);
+			
+			// Sort the list column indexes
+			sortColumnIndexes();
+			
+			sheetData.addProperty(JSONResponse.MAX_COLUMN_PROPERTY, getMaxCellNumber());
+			sheetData.add(JSONResponse.COLUMNS_PROPERTY, new Gson().toJsonTree(getColumnIndexes(), List.class));
+
+			// Return JSON Object
+			// {status: SUCCESS/ERROR, data: {}, error: { code: 000, message: "" }}
+			return JSONResponse.createSuccessResp(sheetData);
 		} catch (Exception ex) {
-			response.addProperty("status", "ERROR");
-			response.addProperty("data", "ERROR");
-			JsonObject error = new JsonObject();
-			error.addProperty("code", 99998);
-			error.addProperty("message", ex.getLocalizedMessage());
-			response.add("error", error);
+			return JSONResponse.createErrorResp(ex.getLocalizedMessage());
 		}
-		
-		// Return JSON Object
-		// {status: SUCCESS/ERROR, data: [], error: { code: 000, message: "" }}
-		return response;
 	}
 	
 	private JsonObject parseRow(Row row) {
@@ -192,9 +199,41 @@ public class XSSFFileHandler extends FileHandler {
 			return dataOfRow;
 		}
 
+		setMaxCellNumber(row);
+
 		for (Cell cell : row) {
-			dataOfRow.addProperty(String.valueOf(cell.getColumnIndex()), cell.getStringCellValue());
+			String columnIdx = String.valueOf(cell.getColumnIndex());
+			// Add column's index to the list if it was not exist
+			addColumnIndexToList(columnIdx);
+			
+			dataOfRow.addProperty(columnIdx, cell.getStringCellValue());
 		}
 		return dataOfRow;
 	}
+	
+	private void addColumnIndexToList(String columnIndex) {
+		if (!columnIndexes.contains(columnIndex)) {
+			columnIndexes.add(columnIndex);
+		}
+	}
+	
+	private void sortColumnIndexes() {
+		Collections.sort(columnIndexes);
+	}
+
+	public List<String> getColumnIndexes() {
+		return columnIndexes;
+	}
+
+	public int getMaxCellNumber() {
+		return maxCellNum - 1;
+	}
+
+	public void setMaxCellNumber(Row row) {
+		int lastCellNum = row.getLastCellNum();
+		if (getMaxCellNumber() < lastCellNum) {
+			this.maxCellNum = lastCellNum;
+		}
+	}
+	
 }
