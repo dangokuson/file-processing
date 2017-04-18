@@ -2,9 +2,12 @@ package com.saltlux.fileprocessing;
 
 import java.io.File;
 import java.io.FileNotFoundException;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import org.apache.commons.lang3.StringUtils;
+import org.apache.poi.ss.usermodel.Row;
 
 import com.google.gson.JsonObject;
 
@@ -19,6 +22,16 @@ public abstract class DefaultHandler {
 	protected boolean addTimestampColumn = true;
 	
 	private File originalFile;
+	
+	/**
+	 * The list of columns on a sheet (maximum)
+	 */
+	private List<String> columnIndexes = new ArrayList<>();
+	
+	/**
+	 * Max column
+	 */
+	private int maxCellNum = 0;
 	
 	public DefaultHandler(String filePath) throws FileNotFoundException {
 		this.filePath = filePath;
@@ -44,9 +57,30 @@ public abstract class DefaultHandler {
 	public String getFileName() {
 		return originalFile.getName();
 	}
+
+	public List<String> getColumnIndexes() {
+		return columnIndexes;
+	}
+
+	public int getMaxCellNumber() {
+		return maxCellNum - 1;
+	}
+
+	public void setMaxCellNumber(Row row) {
+		int lastCellNum = row.getLastCellNum();
+		if (getMaxCellNumber() < lastCellNum) this.maxCellNum = lastCellNum;
+	}
 	
 	protected boolean isNotEmptySheetName(String sheetName) {
 		return StringUtils.isNotEmpty(sheetName);
+	}
+	
+	protected void addColumnIndexToList(String columnIndex) {
+		if (!columnIndexes.contains(columnIndex)) columnIndexes.add(columnIndex);
+	}
+	
+	protected void sortColumnIndexes() {
+		Collections.sort(columnIndexes);
 	}
 	
 	/**

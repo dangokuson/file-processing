@@ -12,9 +12,9 @@ import org.junit.Before;
 import org.junit.Test;
 
 import com.google.gson.JsonObject;
-import com.saltlux.fileprocessing.excel.XSSFHandler;
+import com.saltlux.fileprocessing.excel.POIXSSFHandler;
 
-public class XSSFHandlerTest {
+public class POIXSSFHandlerTest {
 
 	@Before
 	public void setUp() throws Exception {
@@ -28,7 +28,7 @@ public class XSSFHandlerTest {
 	public void test01() throws FileNotFoundException, FileFormatException {
 		long start = System.currentTimeMillis();
 		String filePath = getClass().getClassLoader().getResource("Sample-SuperstoreSubset.xlsx").getPath();
-		XSSFHandler fileHandler = new XSSFHandler(filePath);
+		POIXSSFHandler fileHandler = new POIXSSFHandler(filePath);
 		List<String> sheetNames = fileHandler.getSheetNames();
 		List<String> sheetNamesExpected = Arrays.asList("Orders", "Returns", "Users");
 		System.out.println("Read in " + (System.currentTimeMillis() - start) + "ms");
@@ -41,7 +41,7 @@ public class XSSFHandlerTest {
 	public void test02() throws FileNotFoundException, FileFormatException {
 		long start = System.currentTimeMillis();
 		String filePath = getClass().getClassLoader().getResource("sample.xlsx").getPath();
-		XSSFHandler fileHandler = new XSSFHandler(filePath);
+		POIXSSFHandler fileHandler = new POIXSSFHandler(filePath);
 		List<String> sheetNames = fileHandler.getSheetNames();
 		List<String> sheetNamesExpected = Arrays.asList("Smile You Can Read Me !");
 		System.out.println("Read in " + (System.currentTimeMillis() - start) + "ms");
@@ -54,7 +54,7 @@ public class XSSFHandlerTest {
 	public void test03() throws FileNotFoundException, FileFormatException {
 		long start = System.currentTimeMillis();
 		String filePath = getClass().getClassLoader().getResource("sample.xlsx").getPath();
-		XSSFHandler fileHandler = new XSSFHandler(filePath);
+		POIXSSFHandler fileHandler = new POIXSSFHandler(filePath);
 		List<String> sheetNames = fileHandler.getSheetNames();
 		List<String> sheetNamesExpected = Arrays.asList("Smile You Can Read Me !");
 		System.out.println("Read in " + (System.currentTimeMillis() - start) + "ms");
@@ -67,26 +67,22 @@ public class XSSFHandlerTest {
 	public void test04() throws FileNotFoundException, FileFormatException {
 		long start = System.currentTimeMillis();
 		String filePath = getClass().getClassLoader().getResource("sample.xlsx").getPath();
-		XSSFHandler fileHandler = new XSSFHandler(filePath);
+		POIXSSFHandler fileHandler = new POIXSSFHandler(filePath);
 		JsonObject content = fileHandler.getFirstSheetData();
 		System.out.println("Read in " + (System.currentTimeMillis() - start) + "ms");
 
 		assertFalse(content.isJsonNull());
-		
-		System.out.println(content.toString());
 	}
 	
 	@Test
 	public void test05() throws FileNotFoundException, FileFormatException {
 		long start = System.currentTimeMillis();
 		String filePath = getClass().getClassLoader().getResource("test04.XLSX").getPath();
-		XSSFHandler fileHandler = new XSSFHandler(filePath);
+		POIXSSFHandler fileHandler = new POIXSSFHandler(filePath);
 		JsonObject content = fileHandler.getFirstSheetData();
 		System.out.println("Read in " + (System.currentTimeMillis() - start) + "ms");
 
 		assertFalse(content.isJsonNull());
-		
-		System.out.println(content.toString());
 	}
 
 }

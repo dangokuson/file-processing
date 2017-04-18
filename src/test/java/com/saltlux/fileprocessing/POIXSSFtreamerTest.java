@@ -16,7 +16,7 @@ import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 import com.monitorjbl.xlsx.StreamingReader;
 
-public class XLSXStreamerTest {
+public class POIXSSFtreamerTest {
 
 	@Test
 	public void testPerformance01() throws FileNotFoundException, IOException {
